@@ -1,0 +1,87 @@
+[
+  {
+    "type": "text",
+    "text": "<sup>Scaled</sup> <sup>Dot-Product</sup> <sup>Attention.</sup> <sup>(right)</sup> M<sub>ulti-Head</sub> <sub>Attention</sub> <sub>co</sub> <sup>ion</sup> <sup>layers</sup> <sup>run</sup><sub>ning</sub> <sub>in</sub> <sub>pa</sub>",
+    "bbox": [
+      622,
+      166,
+      659,
+      830
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "code",
+    "sub_type": "algorithm",
+    "code_caption": [],
+    "code_body": "<div class=\"mineru-algorithm\" style=\"white-space: pre-wrap; font-family:monospace;\">\nThe two most commonly used attention functions are additive attention [2], and dot-product (multi-plicative) attention. Dot-product attention is identical to our algorithm, except for the scaling factor of $\\frac{1}{\\sqrt{\\alpha_k}}$. Additive attention computes the compatibility function using a feed-forward network with a single hidden layer. While the two are similar in theoretical complexity, dot-product attention is much faster and more space-efficient in practice, since it can be implemented using highly optimized matrix multiplication code.\n</div>",
+    "bbox": [
+      282,
+      166,
+      375,
+      831
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "text",
+    "text": "<sup>values</sup> <sup>ofdk</sup> <sup>the</sup> <sup>two</sup> <sup>mechanis</sup>m<sub>s</sub> <sub>perform</sub> <sub>similarly,</sub> <sub>additive</sub> <sub>atten</sub> <sup>ntion</sup> <sup>without</sup> <sup>scaling</sup> <sup>for</sup> <sup>larger</sup> <sup>values</sup> <sup>of</sup> <sup>dk</sup> <sup>[3].</sup> W<sub>e</sub> <sub>suspect</sub> <sub>that</sub> <sub>fo</sub> <sup>ucts</sup> <sup>grow</sup> <sup>large</sup> <sup>in</sup> m<sub>agnitude,</sub> <sub>pushing</sub> <sub>the</sub> <sub>softmax</sub> <sub>function</sub> <sub>into</sub> <sub>reg</sub>",
+    "bbox": [
+      214,
+      165,
+      282,
+      833
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "header",
+    "text": "<sup>d</sup> <sup>Dot-Pr</sup>o<sub>duct</sub> <sub>Atte</sub>",
+    "bbox": [
+      893,
+      233,
+      912,
+      439
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "page_number",
+    "text": "4",
+    "bbox": [
+      47,
+      490,
+      64,
+      506
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "table",
+    "img_path": "images/38d29bceb6a1e7f7f8ea065fdec688894751c139d476505465cd419d75fabccc.jpg",
+    "table_caption": [
+      "Table 1: Maximum path lengths, per-layer complexity and minimum number of sequential operations for different layer types. n is the sequence length, d is the representation dimension, k is the kernel size of convolutions and r the size of the neighborhood in restricted self-attention."
+    ],
+    "table_footnote": [],
+    "table_body": "<table><tr><td>Layer Type</td><td>Complexity per Layer</td><td>Sequential Operations</td><td>Maximum Path Length</td></tr><tr><td>Self-Attention</td><td> $O(n^{2} \\cdot d)$ </td><td>O(1)</td><td>O(1)</td></tr><tr><td>Recurrent</td><td> $O(n \\cdot d^{2})$ </td><td>O(n)</td><td>O(n)</td></tr><tr><td>Convolutional</td><td> $O(k \\cdot n \\cdot d^{2})$ </td><td>O(1)</td><td> $O(log_{k}(n))$ </td></tr><tr><td>Self-Attention (restricted)</td><td> $O(r \\cdot n \\cdot d)$ </td><td>O(1)</td><td>O(n/r)</td></tr></table>",
+    "bbox": [
+      97,
+      77,
+      881,
+      196
+    ],
+    "page_idx": 1
+  },
+  {
+    "type": "equation",
+    "text": "$$\n\\begin{array}{r} P E _ {(p o s, 2 i)} = \\sin (p o s / 1 0 0 0 0 ^ {2 i / d _ {\\mathrm{model}}}) \\\\ P E _ {(p o s, 2 i + 1)} = \\cos (p o s / 1 0 0 0 0 ^ {2 i / d _ {\\mathrm{model}}}) \\end{array}\n$$",
+    "text_format": "latex",
+    "bbox": [
+      318,
+      433,
+      662,
+      484
+    ],
+    "page_idx": 1
+  }
+]

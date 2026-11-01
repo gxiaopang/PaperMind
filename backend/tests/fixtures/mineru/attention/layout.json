@@ -1,0 +1,113 @@
+{
+  "pdf_info": [
+    {
+      "page_idx": 0,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 1,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 2,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 3,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 4,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 5,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 6,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 7,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 8,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 9,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 10,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 11,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 12,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 13,
+      "page_size": [
+        612,
+        792
+      ]
+    },
+    {
+      "page_idx": 14,
+      "page_size": [
+        612,
+        792
+      ]
+    }
+  ],
+  "_backend": "hybrid",
+  "_effort": "medium",
+  "_ocr_enable": false,
+  "_version_name": "3.4.4"
+}

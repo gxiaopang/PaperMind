@@ -1,0 +1,112 @@
+{
+  "recorded_date": "2026-10-24",
+  "api": "https://mineru.net/api/v4",
+  "model": "vlm",
+  "coordinate_contract": "Content List V1: page_idx zero-based, bbox in 0..1000; layout.page_size in displayed PDF crop frame",
+  "samples": [
+    {
+      "name": "attention",
+      "source": "https://arxiv.org/pdf/1706.03762v7",
+      "pdf_sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+      "archive_sha256": "f9b0b388e4eb38215a729d7d74a671eb075a22511526a1fd9e8c8922ec48cb4d",
+      "mineru_version": "3.4.4",
+      "full_content_rows": 180,
+      "fixture_original_row_indices": [
+        0,
+        1,
+        12,
+        13,
+        16,
+        29,
+        30,
+        38,
+        43,
+        54,
+        69,
+        98,
+        131,
+        132,
+        174,
+        178
+      ],
+      "page_count": 15,
+      "normalized_counts": {
+        "text": 78,
+        "title": 25,
+        "footnote": 7,
+        "image": 5,
+        "caption": 9,
+        "formula": 5,
+        "table": 4,
+        "reference": 40
+      },
+      "normalized_bbox_count": 164,
+      "normalized_location_count": 173
+    },
+    {
+      "name": "lora",
+      "source": "https://arxiv.org/pdf/2106.09685v2",
+      "pdf_sha256": "e9a0d3128767db616085dc0f4e6e455e672e89af823e8ed1282793682787395a",
+      "archive_sha256": "6b6a45f184434991f7abfe851d7fc27cbdb261cb7a9851eded7fe141f880eedd",
+      "mineru_version": "3.4.4",
+      "full_content_rows": 280,
+      "fixture_original_row_indices": [
+        0,
+        1,
+        8,
+        9,
+        10,
+        13,
+        27,
+        30,
+        38,
+        63,
+        82,
+        83,
+        120,
+        130,
+        131
+      ],
+      "page_count": 26,
+      "normalized_counts": {
+        "title": 40,
+        "text": 108,
+        "image": 9,
+        "caption": 25,
+        "footnote": 11,
+        "formula": 7,
+        "table": 18,
+        "reference": 60
+      },
+      "normalized_bbox_count": 253,
+      "normalized_location_count": 278
+    },
+    {
+      "name": "geometry",
+      "source": "attention.pdf pages 4 and 6: first rotated 90 degrees, second CropBox [70,100,550,730]",
+      "pdf_sha256": "a10a358a01db6f756b0767bae62cd9054feaa235bc77b441d96027ae97e5a1c3",
+      "archive_sha256": "3c3719ac360a6e315fe1170842ca3501646c011ca3996415fcdd24a997a69dfa",
+      "mineru_version": "3.4.4",
+      "full_content_rows": 18,
+      "fixture_original_row_indices": [
+        0,
+        1,
+        2,
+        5,
+        6,
+        7,
+        11
+      ],
+      "page_count": 2,
+      "normalized_counts": {
+        "text": 12,
+        "table": 1,
+        "caption": 1,
+        "title": 2,
+        "formula": 1
+      },
+      "normalized_bbox_count": 16,
+      "normalized_location_count": 17
+    }
+  ]
+}

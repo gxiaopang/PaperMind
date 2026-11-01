@@ -1,0 +1,22 @@
+{
+  "pdf_info": [
+    {
+      "page_idx": 0,
+      "page_size": [
+        792,
+        612
+      ]
+    },
+    {
+      "page_idx": 1,
+      "page_size": [
+        480,
+        630
+      ]
+    }
+  ],
+  "_backend": "hybrid",
+  "_effort": "medium",
+  "_ocr_enable": false,
+  "_version_name": "3.4.4"
+}

@@ -1,0 +1,198 @@
+[
+  {
+    "type": "text",
+    "text": "LORA: LOW-RANK ADAPTATION OF LARGE LAN-GUAGE MODELS",
+    "text_level": 1,
+    "bbox": [
+      171,
+      98,
+      823,
+      146
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "text",
+    "text": "Edward Hu<sup>∗</sup> Yelong Shen<sup>∗</sup> Phillip Wallis Zeyuan Allen-Zhu Yuanzhi Li Shean Wang Lu Wang Weizhu Chen",
+    "bbox": [
+      181,
+      169,
+      694,
+      199
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "image",
+    "img_path": "images/c88d96afa5295c8b612c64d8b8cc66fe7011e4b38a7cce9d268a9b3a8e753c8c.jpg",
+    "image_caption": [
+      "Figure 1: Our reparametrization. We only train A and B."
+    ],
+    "image_footnote": [],
+    "content": "",
+    "bbox": [
+      633,
+      659,
+      821,
+      792
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "aside_text",
+    "text": "arXiv:2106.09685v2 [cs.CL] 16 Oct 2021",
+    "bbox": [
+      22,
+      268,
+      57,
+      704
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "page_footnote",
+    "text": "Equal contribution.",
+    "bbox": [
+      191,
+      869,
+      316,
+      883
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "page_number",
+    "text": "1",
+    "bbox": [
+      493,
+      948,
+      503,
+      959
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "equation",
+    "text": "$$\n\\max _ {\\Phi} \\sum_ {(x, y) \\in \\mathcal {Z}} \\sum_ {t = 1} ^ {| y |} \\log \\left(P _ {\\Phi} (y _ {t} | x, y _ {<   t})\\right)\\tag{1}\n$$",
+    "text_format": "latex",
+    "bbox": [
+      374,
+      140,
+      620,
+      186
+    ],
+    "page_idx": 2
+  },
+  {
+    "type": "equation",
+    "text": "$$\n\\max _ {\\Theta} \\sum_ {(x, y) \\in \\mathcal {Z}} \\sum_ {t = 1} ^ {| y |} \\log \\left(p _ {\\Phi_ {0} + \\Delta \\Phi (\\Theta)} (y _ {t} | x, y _ {<   t})\\right)\\tag{2}\n$$",
+    "text_format": "latex",
+    "bbox": [
+      346,
+      306,
+      648,
+      352
+    ],
+    "page_idx": 2
+  },
+  {
+    "type": "table",
+    "img_path": "images/c8df745d11403baf68c22ba7e94ac26d8e65be627be83281ae92bdc20730d59b.jpg",
+    "table_caption": [
+      "Table 1: Infernece latency of a single forward pass in GPT-2 medium measured in milliseconds, averaged over 100 trials. We use an NVIDIA Quadro RTX8000. “|Θ|” denotes the number of trainable parameters in adapter layers. $\\mathrm { A d a p t e r } ^ { \\mathrm { L } }$ and $\\mathrm { A d a p t e r } ^ { \\mathrm { H } }$ are two variants of adapter tuning, which we describe in Section 5.1. The inference latency introduced by adapter layers can be significant in an online, short-sequence-length scenario. See the full study in Appendix B."
+    ],
+    "table_footnote": [],
+    "table_body": "<table><tr><td>Batch SizeSequence Length $|\\Theta|$ </td><td>325120.5M</td><td>1625611M</td><td>112811M</td></tr><tr><td>Fine-Tune/LoRA</td><td>1449.4±0.8</td><td>338.0±0.6</td><td>19.8±2.7</td></tr><tr><td>Adapter $^{\\mathrm{L}}$ </td><td>1482.0±1.0 (+2.2%)</td><td>354.8±0.5 (+5.0%)</td><td>23.9±2.1 (+20.7%)</td></tr><tr><td>Adapter $^{\\mathrm{H}}$ </td><td>1492.2±1.0 (+3.0%)</td><td>366.3±0.5 (+8.4%)</td><td>25.8±2.2 (+30.3%)</td></tr></table>",
+    "bbox": [
+      205,
+      101,
+      790,
+      209
+    ],
+    "page_idx": 3
+  },
+  {
+    "type": "table",
+    "img_path": "images/00c79d1be96ac9918bf1daf51883703e67d61ac3ee21993aa722326dc8ea673e.jpg",
+    "table_caption": [
+      "Table 2: ${ \\mathrm { R o B E R T a } } _ { \\mathrm { b a s e } } ,$ $\\mathrm { R o B E R T a _ { l a r g e } , }$ and DeBERTa with different adaptation methods on the GLUE benchmark. We report the overall (matched and mismatched) accuracy for MNLI, Matthew’s correlation for CoLA, Pearson correlation for STS-B, and accuracy for other tasks. Higher is better for all metrics. \\* indicates numbers published in prior works. † indicates runs configured in a setup similar to Houlsby et al. (2019) for a fair comparison."
+    ],
+    "table_footnote": [],
+    "table_body": "<table><tr><td>Model &amp; Method</td><td># Trainable Parameters</td><td>MNLI</td><td>SST-2</td><td>MRPC</td><td>CoLA</td><td>QNLI</td><td>QQP</td><td>RTE</td><td>STS-B</td><td>Avg.</td></tr><tr><td> $RoB_{base} (FT)^*$ </td><td>125.0M</td><td>87.6</td><td>94.8</td><td>90.2</td><td>63.6</td><td>92.8</td><td>91.9</td><td>78.7</td><td>91.2</td><td>86.4</td></tr><tr><td> $RoB_{base} (BitFit)^*$ </td><td>0.1M</td><td>84.7</td><td>93.7</td><td>92.7</td><td>62.0</td><td>91.8</td><td>84.0</td><td>81.5</td><td>90.8</td><td>85.2</td></tr><tr><td> $RoB_{base} (Adpt^D)^*$ </td><td>0.3M</td><td>87.1±.0</td><td>94.2±.1</td><td>88.5±1.1</td><td>60.8±.4</td><td>93.1±.1</td><td>90.2±.0</td><td>71.5±2.7</td><td>89.7±.3</td><td>84.4</td></tr><tr><td> $RoB_{base} (Adpt^D)^*$ </td><td>0.9M</td><td>87.3±.1</td><td>94.7±.3</td><td>88.4±.1</td><td>62.6±.9</td><td>93.0±.2</td><td>90.6±.0</td><td>75.9±2.2</td><td>90.3±.1</td><td>85.4</td></tr><tr><td> $RoB_{base} (LoRA)$ </td><td>0.3M</td><td>87.5±.3</td><td>95.1±.2</td><td>89.7±.7</td><td>63.4±1.2</td><td>93.3±.3</td><td>90.8±.1</td><td>86.6±.7</td><td>91.5±.2</td><td>87.2</td></tr><tr><td> $RoB_{large} (FT)^*$ </td><td>355.0M</td><td>90.2</td><td>96.4</td><td>90.9</td><td>68.0</td><td>94.7</td><td>92.2</td><td>86.6</td><td>92.4</td><td>88.9</td></tr><tr><td> $RoB_{large} (LoRA)$ </td><td>0.8M</td><td>90.6±.2</td><td>96.2±.5</td><td>90.9±1.2</td><td>68.2±1.9</td><td>94.9±.3</td><td>91.6±.1</td><td>87.4±2.5</td><td>92.6±.2</td><td>89.0</td></tr><tr><td> $RoB_{large} (Adpt^P)†$ </td><td>3.0M</td><td>90.2±.3</td><td>96.1±.3</td><td>90.2±.7</td><td>68.3±1.0</td><td>94.8±.2</td><td>91.9±.1</td><td>83.8±2.9</td><td>92.1±.7</td><td>88.4</td></tr><tr><td> $RoB_{large} (Adpt^P)†$ </td><td>0.8M</td><td>90.5±.3</td><td>96.6±.2</td><td>89.7±1.2</td><td>67.8±2.5</td><td>94.8±.3</td><td>91.7±.2</td><td>80.1±2.9</td><td>91.9±.4</td><td>87.9</td></tr><tr><td> $RoB_{large} (Adpt^H)†$ </td><td>6.0M</td><td>89.9±.5</td><td>96.2±.3</td><td>88.7±2.9</td><td>66.5±4.4</td><td>94.7±.2</td><td>92.1±.1</td><td>83.4±1.1</td><td>91.0±1.7</td><td>87.8</td></tr><tr><td> $RoB_{large} (Adpt^H)†$ </td><td>0.8M</td><td>90.3±.3</td><td>96.3±.5</td><td>87.7±1.7</td><td>66.3±2.0</td><td>94.7±.2</td><td>91.5±.1</td><td>72.9±2.9</td><td>91.5±.5</td><td>86.4</td></tr><tr><td> $RoB_{large} (LoRA)†$ </td><td>0.8M</td><td>90.6±.2</td><td>96.2±.5</td><td>90.2±1.0</td><td>68.2±1.9</td><td>94.8±.3</td><td>91.6±.2</td><td>85.2±1.1</td><td>92.3±.5</td><td>88.6</td></tr><tr><td> $DeB_{XXL} (FT)^*$ </td><td>1500.0M</td><td>91.8</td><td>97.2</td><td>92.0</td><td>72.0</td><td>96.0</td><td>92.7</td><td>93.9</td><td>92.9</td><td>91.1</td></tr><tr><td> $DeB_{XXL} (LoRA)$ </td><td>4.7M</td><td>91.9±.2</td><td>96.9±.2</td><td>92.6±.6</td><td>72.4±1.1</td><td>96.0±.1</td><td>92.9±.1</td><td>94.9±.4</td><td>93.0±.2</td><td>91.3</td></tr></table>",
+    "bbox": [
+      176,
+      102,
+      818,
+      343
+    ],
+    "page_idx": 5
+  },
+  {
+    "type": "chart",
+    "img_path": "images/9562cde13b47d3f67aa72d8ebc5f1fcc96b236bfa32dedd9b7ba864c58bcbe0e.jpg",
+    "content": "",
+    "chart_caption": [],
+    "chart_footnote": [],
+    "bbox": [
+      179,
+      574,
+      501,
+      729
+    ],
+    "page_idx": 7
+  },
+  {
+    "type": "chart",
+    "img_path": "images/d953033c01cdb2954df6c22264476ef8df32e19a40b9e28a3d556943593420cd.jpg",
+    "content": "",
+    "chart_caption": [
+      "Figure 2: GPT-3 175B validation accuracy vs. number of trainable parameters of several adaptation methods on WikiSQL and MNLI-matched. LoRA exhibits better scalability and task performance. See Section F.2 for more details on the plotted data points."
+    ],
+    "chart_footnote": [],
+    "bbox": [
+      506,
+      573,
+      815,
+      729
+    ],
+    "page_idx": 7
+  },
+  {
+    "type": "image",
+    "img_path": "images/062e70448f1682db3cc9b5c71d441aabcf585281945a227ff52044771284af13.jpg",
+    "image_caption": [
+      "Figure 4: Left and Middle: Normalized subspace similarity between the column vectors of $A _ { r = 6 4 }$ from two random seeds, for both $\\Delta W _ { q }$ and $\\Delta W _ { v }$ in the 48-th layer. Right: the same heat-map between the column vectors of two random Gaussian matrices. See Section H.1 for other layers."
+    ],
+    "image_footnote": [],
+    "content": "",
+    "bbox": [
+      197,
+      99,
+      800,
+      265
+    ],
+    "page_idx": 11
+  },
+  {
+    "type": "ref_text",
+    "text": "Armen Aghajanyan, Luke Zettlemoyer, and Sonal Gupta. Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning. arXiv:2012.13255 [cs], December 2020. URL http://arxiv.org/abs/2012.13255.",
+    "bbox": [
+      173,
+      189,
+      825,
+      231
+    ],
+    "page_idx": 12
+  },
+  {
+    "type": "ref_text",
+    "text": "Zeyuan Allen-Zhu and Yuanzhi Li. What Can ResNet Learn Efficiently, Going Beyond Kernels? In NeurIPS, 2019. Full version available at http://arxiv.org/abs/1905.10337.",
+    "bbox": [
+      171,
+      239,
+      825,
+      268
+    ],
+    "page_idx": 12
+  }
+]

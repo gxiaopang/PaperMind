@@ -1,0 +1,212 @@
+[
+  {
+    "type": "text",
+    "text": "Provided proper attribution is provided, Google hereby grants permission to reproduce the tables and figures in this paper solely for use in journalistic or scholarly works.",
+    "bbox": [
+      197,
+      88,
+      800,
+      143
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "text",
+    "text": "Attention Is All You Need",
+    "text_level": 1,
+    "bbox": [
+      341,
+      184,
+      653,
+      209
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "aside_text",
+    "text": "arXiv:1706.03762v7 [cs.CL] 2 Aug 2023",
+    "bbox": [
+      21,
+      266,
+      60,
+      699
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "page_footnote",
+    "text": "<sup>†</sup>Work performed while at Google Brain.",
+    "bbox": [
+      192,
+      867,
+      441,
+      882
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "footer",
+    "text": "31st Conference on Neural Information Processing Systems (NIPS 2017), Long Beach, CA, USA.",
+    "bbox": [
+      171,
+      922,
+      753,
+      936
+    ],
+    "page_idx": 0
+  },
+  {
+    "type": "page_number",
+    "text": "2",
+    "bbox": [
+      493,
+      936,
+      504,
+      948
+    ],
+    "page_idx": 1
+  },
+  {
+    "type": "image",
+    "img_path": "images/f05ba6a0a2e484dbd8bf2a4a4fa2597a69a3a076f5b03cf4e818b176b4049244.jpg",
+    "image_caption": [
+      "Figure 1: The Transformer - model architecture."
+    ],
+    "image_footnote": [],
+    "content": "",
+    "bbox": [
+      320,
+      89,
+      676,
+      497
+    ],
+    "page_idx": 2
+  },
+  {
+    "type": "image",
+    "img_path": "images/c396b8f3713e23ef2f1e60b3801f825c96756a45f51bbc7eb4898f4230bab9db.jpg",
+    "image_caption": [
+      "Figure 2: (left) Scaled Dot-Product Attention. (right) Multi-Head Attention consists of several attention layers running in parallel."
+    ],
+    "image_footnote": [],
+    "content": "",
+    "bbox": [
+      279,
+      85,
+      763,
+      304
+    ],
+    "page_idx": 3
+  },
+  {
+    "type": "equation",
+    "text": "$$\n\\operatorname{Attention} (Q, K, V) = \\operatorname{softmax} (\\frac {Q K ^ {T}}{\\sqrt {d _ {k}}}) V\\tag{1}\n$$",
+    "text_format": "latex",
+    "bbox": [
+      354,
+      584,
+      643,
+      619
+    ],
+    "page_idx": 3
+  },
+  {
+    "type": "equation",
+    "text": "$$\n\\begin{array}{c} \\text {MultiHead} (Q, K, V) = \\text {Concat} (\\text {head} _ {1},..., \\text {head} _ {\\mathrm{h}}) W ^ {O} \\\\ \\text {where} \\text {head} _ {\\mathrm{i}} = \\text {Attention} (Q W _ {i} ^ {Q}, K W _ {i} ^ {K}, V W _ {i} ^ {V}) \\end{array}\n$$",
+    "text_format": "latex",
+    "bbox": [
+      300,
+      181,
+      696,
+      220
+    ],
+    "page_idx": 4
+  },
+  {
+    "type": "table",
+    "img_path": "images/db66874159dd74fedb6105cb65e9289bf5be1d2b56af6f09285fae25c7192e6c.jpg",
+    "table_caption": [
+      "Table 1: Maximum path lengths, per-layer complexity and minimum number of sequential operations for different layer types. n is the sequence length, d is the representation dimension, k is the kernel size of convolutions and r the size of the neighborhood in restricted self-attention."
+    ],
+    "table_footnote": [],
+    "table_body": "<table><tr><td>Layer Type</td><td>Complexity per Layer</td><td>Sequential Operations</td><td>Maximum Path Length</td></tr><tr><td>Self-Attention</td><td> $O(n^{2} \\cdot d)$ </td><td>O(1)</td><td>O(1)</td></tr><tr><td>Recurrent</td><td> $O(n \\cdot d^{2})$ </td><td>O(n)</td><td>O(n)</td></tr><tr><td>Convolutional</td><td> $O(k \\cdot n \\cdot d^{2})$ </td><td>O(1)</td><td> $O(log_{k}(n))$ </td></tr><tr><td>Self-Attention (restricted)</td><td> $O(r \\cdot n \\cdot d)$ </td><td>O(1)</td><td>O(n/r)</td></tr></table>",
+    "bbox": [
+      192,
+      140,
+      805,
+      234
+    ],
+    "page_idx": 5
+  },
+  {
+    "type": "table",
+    "img_path": "images/e2153c29802ba18b5f4d4c2d483cccb5b3848a9a214510f67a6d7469cdbb0f96.jpg",
+    "table_caption": [
+      "Table 2: The Transformer achieves better BLEU scores than previous state-of-the-art models on the English-to-German and English-to-French newstest2014 tests at a fraction of the training cost."
+    ],
+    "table_footnote": [],
+    "table_body": "<table><tr><td rowspan=\"2\">Model</td><td colspan=\"2\">BLEU</td><td colspan=\"2\">Training Cost (FLOPs)</td></tr><tr><td>EN-DE</td><td>EN-FR</td><td>EN-DE</td><td>EN-FR</td></tr><tr><td>ByteNet [18]</td><td>23.75</td><td></td><td></td><td></td></tr><tr><td>Deep-Att + PosUnk [39]</td><td></td><td>39.2</td><td></td><td> $1.0 \\cdot 10^{20}$ </td></tr><tr><td>GNMT + RL [38]</td><td>24.6</td><td>39.92</td><td> $2.3 \\cdot 10^{19}$ </td><td> $1.4 \\cdot 10^{20}$ </td></tr><tr><td>ConvS2S [9]</td><td>25.16</td><td>40.46</td><td> $9.6 \\cdot 10^{18}$ </td><td> $1.5 \\cdot 10^{20}$ </td></tr><tr><td>MoE [32]</td><td>26.03</td><td>40.56</td><td> $2.0 \\cdot 10^{19}$ </td><td> $1.2 \\cdot 10^{20}$ </td></tr><tr><td>Deep-Att + PosUnk Ensemble [39]</td><td></td><td>40.4</td><td></td><td> $8.0 \\cdot 10^{20}$ </td></tr><tr><td>GNMT + RL Ensemble [38]</td><td>26.30</td><td>41.16</td><td> $1.8 \\cdot 10^{20}$ </td><td> $1.1 \\cdot 10^{21}$ </td></tr><tr><td>ConvS2S Ensemble [9]</td><td>26.36</td><td>41.29</td><td> $7.7 \\cdot 10^{19}$ </td><td> $1.2 \\cdot 10^{21}$ </td></tr><tr><td>Transformer (base model)</td><td>27.3</td><td>38.1</td><td colspan=\"2\"> $3.3 \\cdot 10^{18}$ </td></tr><tr><td>Transformer (big)</td><td>28.4</td><td>41.8</td><td colspan=\"2\"> $2.3 \\cdot 10^{19}$ </td></tr></table>",
+    "bbox": [
+      210,
+      118,
+      785,
+      306
+    ],
+    "page_idx": 7
+  },
+  {
+    "type": "ref_text",
+    "text": "[1] Jimmy Lei Ba, Jamie Ryan Kiros, and Geoffrey E Hinton. Layer normalization. arXiv preprint arXiv:1607.06450, 2016.",
+    "bbox": [
+      181,
+      773,
+      823,
+      801
+    ],
+    "page_idx": 9
+  },
+  {
+    "type": "ref_text",
+    "text": "[2] Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Bengio. Neural machine translation by jointly learning to align and translate. CoRR, abs/1409.0473, 2014.",
+    "bbox": [
+      181,
+      810,
+      823,
+      839
+    ],
+    "page_idx": 9
+  },
+  {
+    "type": "chart",
+    "img_path": "images/8b8122ff9e5a304dbbfde70f24d29dc112b471b5f78d64243dcea37188fb0eb7.jpg",
+    "content": "",
+    "chart_caption": [
+      "Attention Visualizations",
+      "Figure 3: An example of the attention mechanism following long-distance dependencies in the encoder self-attention in layer 5 of 6. Many of the attention heads attend to a distant dependency of the verb ‘making’, completing the phrase ‘making...more difficult’. Attentions here shown only for the word ‘making’. Different colors represent different heads. Best viewed in color."
+    ],
+    "chart_footnote": [],
+    "bbox": [
+      189,
+      125,
+      823,
+      378
+    ],
+    "page_idx": 12
+  },
+  {
+    "type": "chart",
+    "img_path": "images/da053b73bb7fd677e2bcc1bc42a06cc731b06ae88fee6a43d688903112af6438.jpg",
+    "content": "",
+    "chart_caption": [
+      "Figure 5: Many of the attention heads exhibit behaviour that seems related to the structure of the sentence. We give two such examples above, from two different heads from the encoder self-attention at layer 5 of 6. The heads clearly learned to perform different tasks."
+    ],
+    "chart_footnote": [],
+    "bbox": [
+      192,
+      229,
+      816,
+      744
+    ],
+    "page_idx": 14
+  }
+]

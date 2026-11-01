@@ -1,0 +1,68 @@
+[project]
+name = "papermind"
+version = "0.1.0"
+description = "PaperMind multi-user research assistant"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "sqlalchemy[asyncio]>=2.0,<2.1",
+  "asyncpg>=0.30,<1",
+  "alembic>=1.14,<2",
+  "pydantic-settings>=2.7,<3",
+  "email-validator>=2.2,<3",
+  "argon2-cffi>=23.1,<26",
+  "httpx[socks]>=0.28,<1",
+  "tenacity>=9,<10",
+  "arq>=0.26,<0.27",
+  "redis>=5,<6",
+  "aiosmtplib>=4,<6",
+  "cryptography>=44",
+  "structlog>=25,<27",
+  "prometheus-client>=0.21,<1",
+  "langchain-core>=1,<2",
+  "langchain-openai>=1,<2",
+  "langgraph>=1,<2",
+  "langgraph-checkpoint-postgres>=3,<4",
+  "psycopg[binary,pool]>=3.2,<4",
+  "langfuse>=3,<6",
+  "pgvector>=0.3,<1",
+  "pypdf>=6,<7",
+  "tokenizers>=0.21,<0.23",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-asyncio>=0.25,<2", "respx>=0.22,<1",
+       "ruff>=0.11,<1", "mypy>=1.15,<2", "testcontainers[postgres,redis]>=4,<5"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = ["integration: requires Docker and real PostgreSQL/Redis", "live: external paid services (explicit CLI only)"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+disallow_untyped_defs = true
+plugins = ["pydantic.mypy"]
+exclude = ["tests", "alembic"]
+
+[[tool.mypy.overrides]]
+module = ["arq.*", "testcontainers.*", "tokenizers", "tokenizers.*"]
+ignore_missing_imports = true

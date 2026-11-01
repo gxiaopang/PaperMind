@@ -1,0 +1,115 @@
+name: papermind
+
+x-backend: &backend
+  image: papermind-api:m5
+  build:
+    context: ..
+    dockerfile: deploy/backend.Dockerfile
+    args:
+      HTTPS_PROXY: ${BUILD_HTTPS_PROXY:-}
+      HTTP_PROXY: ${BUILD_HTTP_PROXY:-}
+  env_file:
+    - ../.env
+    - ../.env.local
+    - path: ../.env.smtp.local
+      required: false
+  environment:
+    DATABASE_URL: postgresql+asyncpg://papermind:${POSTGRES_PASSWORD:?Run scripts/bootstrap.py first}@postgres:5432/papermind
+    REDIS_URL: redis://redis:6379/0
+    STORAGE_ROOT: /app/data
+    HTTPS_PROXY: ${RUNTIME_HTTPS_PROXY:-}
+    HTTP_PROXY: ${RUNTIME_HTTP_PROXY:-}
+    NO_PROXY: ${PROXY_NO_PROXY:-localhost,127.0.0.1,postgres,redis,api}
+  volumes:
+    - private_files:/app/data
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: paradedb/paradedb:0.26.3-pg16
+    environment:
+      POSTGRES_USER: papermind
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/bootstrap.py first}
+      POSTGRES_DB: papermind
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U papermind -d papermind"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7.4.6-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    <<: *backend
+    command: ["sh", "-c", "alembic upgrade head && python -m app.cli checkpoints"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    <<: *backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    ports:
+      - "127.0.0.1:18000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+  worker:
+    <<: *backend
+    command: ["python", "-m", "app.workers.run"]
+    healthcheck:
+      test: ["CMD-SHELL", "arq app.workers.mail.WorkerSettings --check && arq app.workers.ingestion.WorkerSettings --check && arq app.workers.chat.WorkerSettings --check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+  web:
+    image: papermind-web:m5
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+      args:
+        HTTPS_PROXY: ${BUILD_HTTPS_PROXY:-}
+        HTTP_PROXY: ${BUILD_HTTP_PROXY:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  private_files:

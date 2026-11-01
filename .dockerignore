@@ -1,0 +1,15 @@
+.env*
+.git
+.agents
+.codex
+.aws
+**/.venv
+**/node_modules
+**/__pycache__
+**/dist
+**/*.tsbuildinfo
+**/.pytest_cache
+reports/*
+!reports/m3-retrieval-v7-final.json
+!reports/pre-m6-v7-live-summary.json
+data
