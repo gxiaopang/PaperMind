@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, BookOpen, Layers, LocateFixed, MessageSquare, Search } from 'lucide-react'
 import { api, apiText, type ChunkInfo, type Paper, type ParsedDocumentInfo } from '../lib/api'
 import { locationsToHighlight, type PdfHighlight } from '../lib/workbenchHelpers'
@@ -27,6 +27,8 @@ export function PaperDetail({
   onBack: () => void
   onAskPaper?: (paper: Paper) => void
 }) {
+  const queryClient = useQueryClient()
+  const [currentPageIdx, setCurrentPageIdx] = useState(0)
   const [leftTab, setLeftTab] = useState<'markdown' | 'chunks'>('markdown')
   const [highlight, setHighlight] = useState<PdfHighlight | null>(null)
   const [selectedLocations, setSelectedLocations] = useState<ChunkInfo['locations']>([])
@@ -50,6 +52,16 @@ export function PaperDetail({
     queryKey: ['paper-chunks', paper.id, paper.active_version_id],
     queryFn: () => api<ChunkInfo[]>(`/papers/${paper.id}/chunks`),
     enabled: !!paper.active_version_id,
+  })
+
+  const readingPosition = useQuery({
+    queryKey: ['reading-position', paper.id, paper.active_version_id],
+    queryFn: () => api<{ position: { version_id: string; page_idx: number } | null; current: boolean }>(`/papers/${paper.id}/reading-position`),
+    enabled: !!paper.active_version_id,
+  })
+  const savePosition = useMutation({
+    mutationFn: () => api(`/papers/${paper.id}/reading-position`, 'PUT', { version_id: paper.active_version_id, page_idx: currentPageIdx }),
+    onSuccess: () => { void readingPosition.refetch(); void queryClient.invalidateQueries({ queryKey: ['memories'] }) },
   })
 
   const kinds = useMemo(() => {
@@ -253,9 +265,17 @@ export function PaperDetail({
         </div>
 
         <div className="detail-pane detail-right">
+          <div className="reading-position-controls">
+            <Button variant="outline" disabled={!paper.active_version_id || savePosition.isPending} onClick={() => savePosition.mutate()}>记住阅读位置</Button>
+            {readingPosition.data?.current && readingPosition.data.position && <Button variant="outline" onClick={() => setHighlight(locationsToHighlight(paper.id, [{ page_idx: readingPosition.data!.position!.page_idx }]))}>回到第 {readingPosition.data.position.page_idx + 1} 页</Button>}
+            {savePosition.isSuccess && <span role="status">阅读位置已保存</span>}
+            {savePosition.error && <span role="alert">{savePosition.error.message}</span>}
+            {readingPosition.data?.position && !readingPosition.data.current && <span className="muted">论文已更新，请重新记录阅读位置。</span>}
+          </div>
           <PdfPreview
             paperId={paper.id}
             title={paper.title}
+            onPageChange={setCurrentPageIdx}
             highlight={highlight}
             allLocations={selectedLocations}
             onSelectPageIdx={(pageIdx) => {

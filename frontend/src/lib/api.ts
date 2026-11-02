@@ -44,6 +44,7 @@ export type ScopeConfig = {
 }
 
 export type Conversation = {
+  project_id?: string | null
   id: string
   title: string
   scope: ScopeConfig
@@ -190,4 +191,76 @@ export async function apiText(path: string): Promise<string> {
     throw new ApiError(response.status, typeof data.detail === 'string' ? data.detail : '获取内容失败')
   }
   return await response.text()
+}
+
+
+export type ResearchProject = { id: string; name: string; description: string; created_at: string }
+export type ResearchState = Record<string, Array<{ content: string; source_seq: number }>>
+export type ConversationMemory = {
+  summary: string; research_state: ResearchState; summarized_seq: number
+  project_id: string | null; active_paper_ids: string[]
+}
+export type MemoryEntry = {
+  id: string; level: 'user' | 'project' | 'paper' | 'conversation'
+  project_id: string | null; conversation_id: string | null; paper_id: string | null
+  kind: string; content: string; status: 'candidate' | 'active' | 'superseded'
+  epistemic: 'user_statement' | 'hypothesis' | 'evidence_linked'; pinned: boolean
+  source_message_id: string | null; citation_ids: string[]
+  reading_anchor?: { version_id: string; page_idx: number }
+  evidence_status: 'current' | 'outdated' | 'unavailable' | 'unlinked'
+  evidence: Array<{ id: string; paper_id?: string; title?: string; status: string }>
+  created_at: string; updated_at: string
+}
+
+export type CoreMemoryBlock = {
+  level: 'user' | 'project'
+  project_id: string | null
+  project_name: string | null
+  content: string
+  char_count: number
+  char_limit: number
+  revision: number
+  updated_at: string
+}
+
+export type CoreMemoryResponse = {
+  profile: CoreMemoryBlock
+  project: CoreMemoryBlock | null
+}
+
+export type MemoryEventItem = {
+  id: string
+  project_id: string | null
+  conversation_id: string | null
+  run_id: string | null
+  memory_id: string | null
+  target: 'profile' | 'project' | 'entry'
+  action: 'add' | 'update' | 'supersede' | 'delete'
+  actor: 'user' | 'agent' | 'review'
+  summary: string
+  undone_at: string | null
+  created_at: string
+}
+
+export type SessionSearchResult = {
+  message_id: string
+  conversation_id: string
+  conversation_title: string
+  project_id: string | null
+  seq: number
+  role: 'user' | 'assistant'
+  snippet: string
+  created_at: string
+}
+
+export type MemorySettings = {
+  memory_write_mode: 'auto' | 'review'
+}
+
+export type UsedMemoryHint = {
+  id: string
+  kind: string
+  level: string
+  content: string
+  status: string
 }

@@ -14,7 +14,7 @@ from prometheus_client import Counter, Histogram
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.api.v1 import auth, chat, collections, papers, retrieval
+from app.api.v1 import auth, chat, collections, memory, papers, retrieval
 from app.core.config import Settings, get_settings
 from app.core.observability import setup_logging, tracing_client
 from app.db.models import SystemConfig
@@ -124,6 +124,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(papers.router, prefix="/api/v1")
     app.include_router(retrieval.router, prefix="/api/v1")
     app.include_router(chat.router, prefix="/api/v1")
+    app.include_router(memory.router, prefix="/api/v1")
     # Operational access is authenticated and admin-only even on internal deployments.
     from app.api.v1 import admin
 

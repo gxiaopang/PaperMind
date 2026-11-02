@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
-export type WorkspaceTab = 'library' | 'chat' | 'settings' | 'admin'
+export type WorkspaceTab = 'library' | 'chat' | 'memory' | 'settings' | 'admin'
 
 export type Route = {
   tab: WorkspaceTab
@@ -8,7 +8,7 @@ export type Route = {
   paperId?: string
 }
 
-const TABS: WorkspaceTab[] = ['library', 'chat', 'settings', 'admin']
+const TABS: WorkspaceTab[] = ['library', 'chat', 'memory', 'settings', 'admin']
 
 /** Parse `#/library/<cid>/paper/<pid>`, `#/chat` … Legacy token hashes fall back to the library. */
 export function parseRoute(hash: string): Route {

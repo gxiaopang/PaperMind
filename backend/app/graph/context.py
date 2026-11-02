@@ -4,7 +4,7 @@ import json
 
 from app.graph.state import RAGState
 
-CONTEXT_VERSION = "node-context-v1"
+CONTEXT_VERSION = "node-context-v2-memory"
 CONTROL_EVIDENCE_BYTES = 12000
 SOURCE_PREVIEW_BYTES = 512
 
@@ -107,6 +107,23 @@ def node_payload(
     result: dict = {"question": state["question"]}
     if node in {"route", "rewrite_query", "generate", "direct_answer"}:
         result.update(history=state.get("history", []), summary=state.get("summary", ""))
+    if node in {
+        "route",
+        "rewrite_query",
+        "plan_paper_tools",
+        "transform_query",
+        "generate",
+        "direct_answer",
+    }:
+        result.update(
+            research_state=state.get("research_state", {}),
+            memories=state.get("memories", []),
+            memory_coverage=state.get("memory_coverage", {}),
+        )
+        if state.get("core_memory"):
+            result["core_memory"] = state["core_memory"]
+        if state.get("session_recall"):
+            result["session_recall"] = state["session_recall"]
     if node == "rewrite_query":
         result.update(
             active_papers=state.get("active_paper_ids", []),

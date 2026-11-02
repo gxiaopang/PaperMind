@@ -23,6 +23,7 @@ export function PdfPreview({
   highlight,
   allLocations,
   onSelectPageIdx,
+  onPageChange,
 }: {
   paperId: string
   title?: string
@@ -30,6 +31,7 @@ export function PdfPreview({
   highlight?: PdfHighlight | null
   allLocations?: Location[]
   onSelectPageIdx?: (pageIdx: number) => void
+  onPageChange?: (pageIdx: number) => void
 }) {
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState<number>(Math.max(1, initialPage))
@@ -63,6 +65,10 @@ export function PdfPreview({
     observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    if (numPages > 0 && pageNumber <= numPages) onPageChange?.(pageNumber - 1)
+  }, [numPages, pageNumber, onPageChange])
 
   const activeBboxes =
     highlight && highlight.paperId === paperId && highlight.pageNumber === pageNumber

@@ -3,11 +3,13 @@ import {
   applySseEvent,
   isSafeExternalHref,
   locationsToHighlight,
+  memoryKindLabels,
   resolvePaperAssetSrc,
   splitAnswerWithCitations,
   validBbox,
   type RunProgressState,
 } from '../src/lib/workbenchHelpers'
+import { parseRoute, routeToHash } from '../src/lib/router'
 
 test('单元校验：相对坐标 bbox 归一化、安全链接与资源路径、引用切分与 SSE 重生成草稿状态机', async () => {
   expect(validBbox([0.1, 0.2, 0.8, 0.9])).toBe(true)
@@ -85,9 +87,21 @@ test('单元校验：相对坐标 bbox 归一化、安全链接与资源路径�
 
   state = applySseEvent(state, 'token', { id: 4, attempt: 2, text: '修正后的第二版草稿[1]。' })
   state = applySseEvent(state, 'answer', { id: 5, attempt: 2, text: '修正后的第二版草稿[1]。', status: 'answered' })
-  state = applySseEvent(state, 'done', { id: 6, attempt: 2, status: 'answered', usage: { tokens: 256, estimated: false } })
+  state = applySseEvent(state, 'done', {
+    id: 6,
+    attempt: 2,
+    status: 'answered',
+    usage: { tokens: 256, estimated: false },
+    used_memories: [{ id: 'm1', kind: 'goal', level: 'project', epistemic: 'user_statement', content: '研究目标' }],
+    memory_events: [{ id: 'ev1', project_id: 'p1', conversation_id: 'c1', run_id: 'r1', memory_id: 'm1', target: 'entry', action: 'add', actor: 'agent', summary: '已记住：研究目标', before_state: {}, after_state: {}, undone_at: null, created_at: '2026-11-02T00:00:00Z' }],
+  })
   expect(state.finalText).toBe('修正后的第二版草稿[1]。')
   expect(state.status).toBe('completed')
   expect(state.usageTokens).toBe(256)
+  expect(state.usedMemories).toHaveLength(1)
+  expect(state.memoryEvents).toHaveLength(1)
+  expect(memoryKindLabels.goal).toBe('研究目标')
+  expect(parseRoute('#/memory')).toEqual({ tab: 'memory' })
+  expect(routeToHash({ tab: 'memory' })).toBe('#/memory')
 })
 

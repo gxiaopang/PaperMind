@@ -77,7 +77,7 @@ class Models:
                 else self.groundings[0]
             }
         elif node == "summarize":
-            result = {"summary": "用户正在研究注意力方法；仅作会话线索。"}
+            result = {"summary": "用户正在研究注意力方法；仅作会话线索。", "research_state": {}}
         elif node == "direct_answer":
             return "你好，我可以帮助你阅读论文。"
         else:
@@ -198,9 +198,9 @@ def test_citation_rules(answer, count, valid):
     assert validate_citations(answer, count)[0] == valid
 
 
-def test_memory_budget_uses_recent_suffix_and_does_not_duplicate():
+def test_memory_budget_uses_complete_turns_and_does_not_duplicate():
     history = [{"role": "user", "content": "old"}, {"role": "assistant", "content": "中" * 5}]
-    assert trim_history(history, 23) == [history[-1]]
+    assert trim_history(history, 23) == history
     assert trim_history(history, 10) == []
 
 
@@ -1260,3 +1260,15 @@ async def test_chat_selects_direct_tools_with_mounted_map_and_persists_real_cita
         assert (
             list(await db.scalars(select(UsageRecord).where(UsageRecord.run_id == UUID(rid)))) == []
         )
+
+
+async def test_chitchat_keeps_last_paper_focus(app, client, chat_setup):
+    owner, cid, ctx, models, papers, _ = chat_setup
+    rid = await submit_run(client, cid, mode="fast")
+    await run_result(client, ctx, owner, rid)
+    models.route = "chitchat"
+    rid = await submit_run(client, cid, mode="fast", question="谢谢")
+    await run_result(client, ctx, owner, rid)
+    async with app.state.session_factory() as db:
+        conversation = await db.get(Conversation, UUID(cid))
+        assert conversation.active_paper_ids == [str(papers[0].id)]

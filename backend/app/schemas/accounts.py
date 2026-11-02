@@ -74,6 +74,7 @@ class UserSettingsInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     answer_language: Literal["zh", "en"] = "zh"
     detail_level: Literal["concise", "standard", "detailed"] = "standard"
+    memory_write_mode: Literal["auto", "review"] = "auto"
 
 
 class AdminUserUpdate(BaseModel):

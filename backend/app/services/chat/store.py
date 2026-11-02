@@ -22,7 +22,7 @@ from app.schemas.chat import RunInput
 from app.services.ingestion.quota import lock_user, totals, user_settings
 from app.services.retrieval.types import RetrievalScope
 
-PROMPT_VERSION = "m4-v6-node-context"
+PROMPT_VERSION = "m4-v7-research-memory"
 CONTEXT_STRATEGY = "paper-map-tools-v5"
 
 
@@ -68,6 +68,7 @@ def execution_config(settings: Settings) -> dict:
                 "retrieval_neighbor_window",
                 "paper_tool_max_bytes",
                 "memory_recent_token_budget",
+                "memory_long_term_token_budget",
                 "memory_summarize_after_turns",
             )
         },

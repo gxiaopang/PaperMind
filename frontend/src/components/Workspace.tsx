@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  Brain,
   ChevronRight,
   Library as LibraryIcon,
   LogOut,
@@ -24,6 +25,7 @@ import { Brand } from './Brand'
 import { ChatWorkbench } from './ChatWorkbench'
 import { Library } from './Library'
 import { Papers } from './Papers'
+import { MemoryCenter } from './ResearchMemory'
 import { SettingsUsage } from './SettingsUsage'
 import { Button } from './ui/button'
 import { Notice, Spinner } from './ui/primitives'
@@ -31,6 +33,7 @@ import { Notice, Spinner } from './ui/primitives'
 const tabTitles: Record<WorkspaceTab, string> = {
   library: '我的知识库',
   chat: '问答工作台',
+  memory: '研究记忆中心',
   settings: '设置与用量',
   admin: '系统管理',
 }
@@ -185,6 +188,12 @@ export function Workspace({ user }: { user: User }) {
             onClick={() => navigate({ tab: 'chat' })}
           />
           <NavItem
+            icon={<Brain size={18} />}
+            label="研究记忆中心"
+            active={tab === 'memory'}
+            onClick={() => navigate({ tab: 'memory' })}
+          />
+          <NavItem
             icon={<Sliders size={18} />}
             label="设置与用量"
             active={tab === 'settings'}
@@ -295,6 +304,8 @@ export function Workspace({ user }: { user: User }) {
               initialPaperId={initialAskPaperId}
               onClearInitialPaper={() => setInitialAskPaperId(null)}
             />
+          ) : tab === 'memory' ? (
+            <MemoryCenter user={user} />
           ) : tab === 'settings' ? (
             <SettingsUsage user={user} />
           ) : tab === 'admin' ? (

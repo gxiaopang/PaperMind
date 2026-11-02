@@ -5,10 +5,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select, update
 
 from app.api.deps import CurrentIdentity, VerifiedUser, require_identity
-from app.db.models import ChatEvent, ChatRun, Conversation, Message, User, utcnow
+from app.db.models import ChatEvent, ChatRun, Conversation, MemoryEntry, Message, User, utcnow
 from app.schemas.chat import ConversationInput, ConversationUpdate, FeedbackInput, RunInput
 from app.services.chat.events import citations_for, public_event, sse, stream_key
 from app.services.chat.results import result_for
@@ -23,6 +23,7 @@ def conversation_json(item: Conversation) -> dict:
         "id": item.id,
         "title": item.title,
         "scope": item.scope,
+        "project_id": item.project_id,
         "active_paper_ids": item.active_paper_ids,
         "created_at": item.created_at,
     }
@@ -38,7 +39,16 @@ async def create_conversation(
         scope_for(user.id, scope)
     )
     async with state.session_factory() as db:
-        item = Conversation(user_id=user.id, title=body.title, scope=scope)
+        from app.services.ingestion.quota import lock_user
+        from app.services.memory.store import owned_project
+
+        await lock_user(db, user.id)
+
+        if body.project_id:
+            await owned_project(db, user.id, body.project_id)
+        item = Conversation(
+            user_id=user.id, title=body.title, scope=scope, project_id=body.project_id
+        )
         db.add(item)
         await db.commit()
         return conversation_json(item)
@@ -82,6 +92,18 @@ async def update_conversation(
     async with state.session_factory() as db:
         await db.scalar(select(User).where(User.id == identity.user.id).with_for_update())
         item = await owned_conversation(db, identity.user.id, cid)
+        if "project_id" in body.model_fields_set and body.project_id != item.project_id:
+            from app.api.v1.memory import idle_conversation
+            from app.services.memory.store import owned_project
+
+            await idle_conversation(db, identity.user.id, cid)
+            if body.project_id:
+                await owned_project(db, identity.user.id, body.project_id)
+            # Explicit project switches start fresh conversational context; old messages remain viewable.
+            item.project_id = body.project_id
+            item.summary, item.research_state, item.active_paper_ids = "", {}, []
+            item.summarized_seq = item.next_seq - 1
+            item.memory_revision += 1
         if body.title is not None:
             item.title = body.title.strip() or "新会话"
         if scope is not None:
@@ -108,6 +130,21 @@ async def delete_conversation(cid: UUID, request: Request, identity: CurrentIden
         if active:
             raise HTTPException(409, "会话正在生成回答，请等待完成后再删除")
         item.deleted_at = utcnow()
+        source_messages = select(Message.id).where(
+            Message.user_id == identity.user.id, Message.conversation_id == cid
+        )
+        await db.execute(
+            update(MemoryEntry)
+            .where(
+                MemoryEntry.user_id == identity.user.id,
+                or_(
+                    MemoryEntry.conversation_id == cid,
+                    (MemoryEntry.source_message_id.in_(source_messages))
+                    & (MemoryEntry.status == "candidate"),
+                ),
+            )
+            .values(deleted_at=utcnow())
+        )
         await db.commit()
 
 

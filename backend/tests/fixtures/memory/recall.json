@@ -1,0 +1,129 @@
+{
+  "version": "memory-recall-v1",
+  "description": "Synthetic ranking cases after tenant, project and evidence filtering; no LLM calls.",
+  "cases": [
+    {
+      "id": "chinese_experiment_followup",
+      "question": "继续核对低秩适配的消融实验",
+      "budget": 600,
+      "entries": [
+        {
+          "id": "ablation",
+          "kind": "open_question",
+          "content": "低秩适配的消融实验仍待核对"
+        },
+        {
+          "id": "unrelated",
+          "kind": "note",
+          "content": "图数据库索引配置"
+        }
+      ],
+      "expected": [
+        "ablation"
+      ]
+    },
+    {
+      "id": "vague_project_resume",
+      "question": "继续上次的研究",
+      "budget": 600,
+      "entries": [
+        {
+          "id": "goal",
+          "kind": "goal",
+          "content": "比较低秩适配与全参数微调"
+        },
+        {
+          "id": "next",
+          "kind": "next_step",
+          "content": "核对实验数据集是否一致"
+        },
+        {
+          "id": "unrelated",
+          "kind": "note",
+          "content": "其他笔记"
+        }
+      ],
+      "expected": [
+        "goal",
+        "next"
+      ]
+    },
+    {
+      "id": "english_followup",
+      "question": "Check LoRA ablation rank sensitivity",
+      "budget": 600,
+      "entries": [
+        {
+          "id": "rank",
+          "kind": "open_question",
+          "content": "LoRA rank sensitivity ablation is unresolved"
+        },
+        {
+          "id": "irrelevant",
+          "kind": "note",
+          "content": "Graph indexing speed"
+        }
+      ],
+      "expected": [
+        "rank"
+      ]
+    },
+    {
+      "id": "pinned_constraint",
+      "question": "如何设计下一组实验",
+      "budget": 600,
+      "entries": [
+        {
+          "id": "constraint",
+          "kind": "constraint",
+          "content": "实验仅能使用单张24GB显卡",
+          "pinned": true
+        },
+        {
+          "id": "oldnote",
+          "kind": "note",
+          "content": "历史天气记录"
+        }
+      ],
+      "expected": [
+        "constraint"
+      ]
+    },
+    {
+      "id": "correction_priority",
+      "question": "延续研究计划",
+      "budget": 150,
+      "entries": [
+        {
+          "id": "correction",
+          "kind": "correction",
+          "content": "用户纠正：改为分析推理开销"
+        },
+        {
+          "id": "older",
+          "kind": "goal",
+          "content": "重点分析训练速度",
+          "pinned": true
+        }
+      ],
+      "expected": [
+        "correction",
+        "older"
+      ],
+      "expected_first": "correction"
+    },
+    {
+      "id": "irrelevant_notes_abstain",
+      "question": "注意力的计算复杂度",
+      "budget": 600,
+      "entries": [
+        {
+          "id": "irrelevant",
+          "kind": "note",
+          "content": "数据库备份日志"
+        }
+      ],
+      "expected": []
+    }
+  ]
+}

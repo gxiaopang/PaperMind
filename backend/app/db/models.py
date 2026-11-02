@@ -456,13 +456,28 @@ class UserSetting(Base):
     __table_args__ = (
         CheckConstraint("answer_language IN ('zh', 'en')"),
         CheckConstraint("detail_level IN ('concise', 'standard', 'detailed')"),
+        CheckConstraint("memory_write_mode IN ('auto', 'review')"),
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     answer_language: Mapped[str] = mapped_column(String(8), default="zh")
     detail_level: Mapped[str] = mapped_column(String(16), default="standard")
+    memory_write_mode: Mapped[str] = mapped_column(
+        String(16), default="auto", server_default="auto"
+    )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ResearchProject(Base):
+    __tablename__ = "research_projects"
+    __table_args__ = (UniqueConstraint("user_id", "id"),)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Conversation(Base):
@@ -470,12 +485,18 @@ class Conversation(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "id"),
         Index("ix_conversations_owner_created", "user_id", "created_at"),
+        ForeignKeyConstraint(
+            ["user_id", "project_id"], ["research_projects.user_id", "research_projects.id"]
+        ),
     )
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(120), default="新会话")
     scope: Mapped[dict] = mapped_column(JSONB, default=dict)
     active_paper_ids: Mapped[list] = mapped_column(JSONB, default=list)
+    project_id: Mapped[uuid.UUID | None]
+    research_state: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'"))
+    memory_revision: Mapped[int] = mapped_column(default=0, server_default="0")
     summary: Mapped[str] = mapped_column(Text, default="")
     summarized_seq: Mapped[int] = mapped_column(default=0)
     next_seq: Mapped[int] = mapped_column(default=1)
@@ -556,4 +577,96 @@ class ChatEvent(Base):
     kind: Mapped[str] = mapped_column(String(24))
     attempt: Mapped[int]
     data: Mapped[dict] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class MemoryEntry(Base):
+    __tablename__ = "memory_entries"
+    __table_args__ = (
+        UniqueConstraint("user_id", "fingerprint"),
+        CheckConstraint("level IN ('user', 'project', 'paper', 'conversation')"),
+        CheckConstraint("status IN ('candidate', 'active', 'superseded')"),
+        CheckConstraint("epistemic IN ('user_statement', 'hypothesis', 'evidence_linked')"),
+        CheckConstraint(
+            "(level = 'user' AND project_id IS NULL AND conversation_id IS NULL AND paper_id IS NULL) OR "
+            "(level = 'project' AND project_id IS NOT NULL AND conversation_id IS NULL AND paper_id IS NULL) OR "
+            "(level = 'paper' AND paper_id IS NOT NULL AND conversation_id IS NULL) OR "
+            "(level = 'conversation' AND conversation_id IS NOT NULL AND paper_id IS NULL)"
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "project_id"], ["research_projects.user_id", "research_projects.id"]
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "conversation_id"], ["conversations.user_id", "conversations.id"]
+        ),
+        ForeignKeyConstraint(["user_id", "paper_id"], ["papers.user_id", "papers.id"]),
+        ForeignKeyConstraint(["user_id", "source_message_id"], ["messages.user_id", "messages.id"]),
+        Index("ix_memory_owner_project_status", "user_id", "project_id", "status"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    level: Mapped[str] = mapped_column(String(16))
+    project_id: Mapped[uuid.UUID | None]
+    conversation_id: Mapped[uuid.UUID | None]
+    paper_id: Mapped[uuid.UUID | None]
+    kind: Mapped[str] = mapped_column(String(24))
+    content: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="candidate")
+    epistemic: Mapped[str] = mapped_column(String(24), default="user_statement")
+    pinned: Mapped[bool] = mapped_column(default=False)
+    source_message_id: Mapped[uuid.UUID | None]
+    citation_ids: Mapped[list] = mapped_column(JSONB, default=list)
+    reading_anchor: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'"))
+    fingerprint: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class MemoryCoreBlock(Base):
+    """Hermes-style bounded core memory (USER.md / MEMORY.md) injected as a frozen snapshot."""
+
+    __tablename__ = "memory_core_blocks"
+    __table_args__ = (
+        CheckConstraint("level IN ('user', 'project')"),
+        CheckConstraint(
+            "(level = 'user' AND project_id IS NULL) OR (level = 'project' AND project_id IS NOT NULL)"
+        ),
+        ForeignKeyConstraint(
+            ["user_id", "project_id"], ["research_projects.user_id", "research_projects.id"]
+        ),
+        Index("ix_memory_core_owner_project", "user_id", "level", "project_id"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    level: Mapped[str] = mapped_column(String(16))
+    project_id: Mapped[uuid.UUID | None]
+    content: Mapped[str] = mapped_column(Text, default="")
+    revision: Mapped[int] = mapped_column(default=0, server_default="0")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class MemoryEvent(Base):
+    """Reversible audit log for agent/user memory mutations."""
+
+    __tablename__ = "memory_events"
+    __table_args__ = (
+        CheckConstraint("target IN ('profile', 'project', 'entry')"),
+        CheckConstraint("action IN ('add', 'update', 'supersede', 'delete')"),
+        CheckConstraint("actor IN ('user', 'agent', 'review')"),
+        Index("ix_memory_events_owner_created", "user_id", "created_at"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    project_id: Mapped[uuid.UUID | None]
+    conversation_id: Mapped[uuid.UUID | None]
+    run_id: Mapped[uuid.UUID | None]
+    memory_id: Mapped[uuid.UUID | None]
+    target: Mapped[str] = mapped_column(String(24))
+    action: Mapped[str] = mapped_column(String(24))
+    actor: Mapped[str] = mapped_column(String(16), default="agent")
+    summary: Mapped[str] = mapped_column(Text)
+    before_state: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'"))
+    after_state: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'"))
+    undone_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

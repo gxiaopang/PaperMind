@@ -8,7 +8,6 @@ import structlog
 from arq import cron
 from arq.connections import RedisSettings
 from fastapi import HTTPException
-from langfuse.langchain import CallbackHandler
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.errors import NodeCancelledError
 from psycopg import AsyncConnection
@@ -17,11 +16,16 @@ from psycopg_pool import AsyncConnectionPool
 from sqlalchemy import delete, select, text
 
 from app.core.config import get_settings
-from app.core.observability import tracing_client
-from app.db.models import ChatEvent, ChatRun, Conversation, Message, TaskOutbox, User, utcnow
+from app.core.observability import (
+    Observation,
+    SafeCallbackHandler,
+    run_trace,
+    trace_context,
+    tracing_client,
+)
+from app.db.models import ChatEvent, ChatRun, TaskOutbox, User, utcnow
 from app.graph.builder import build_graph
 from app.graph.nodes import GraphServices
-from app.graph.prompts import Summary
 from app.graph.state import initial_state
 from app.services.chat.events import append, mirror
 from app.services.chat.llm import ChatModels
@@ -34,7 +38,8 @@ from app.services.chat.store import (
     scope_for,
     thread_id,
 )
-from app.services.ingestion.quota import lock_user
+from app.services.chat.telemetry import record_result
+from app.services.memory.consolidation import consolidate
 from app.services.memory.history import load_memory
 from app.services.retrieval.store import RetrievalStore
 from app.workers.mail import shutdown as db_shutdown
@@ -77,7 +82,7 @@ async def fail(ctx: dict[str, Any], user_id: UUID, rid: UUID, error: Exception) 
     log.warning("chat_run_failed", run_id=str(rid), error_type=type(error).__name__)
 
 
-def graph_config(ctx: dict[str, Any], run: ChatRun) -> dict:
+def graph_config(ctx: dict[str, Any], run: ChatRun, *, kind: str = "chat") -> dict:
     config: dict = {
         "configurable": {"thread_id": thread_id(run)},
         "recursion_limit": 60,
@@ -92,9 +97,11 @@ def graph_config(ctx: dict[str, Any], run: ChatRun) -> dict:
     }
     if ctx.get("tracing"):
         try:
-            config["callbacks"] = [
-                CallbackHandler(public_key=ctx["settings"].langfuse_public_key.get_secret_value())
-            ]
+            handler = SafeCallbackHandler(
+                public_key=ctx["settings"].langfuse_public_key.get_secret_value(),
+                trace_context=trace_context(run, kind),
+            )
+            config["callbacks"] = [handler]
         except Exception as exc:
             log.warning("chat_tracing_unavailable", error_type=type(exc).__name__)
     return config
@@ -104,9 +111,20 @@ async def execute(ctx: dict[str, Any], owner: str, resource: str) -> None:
     uid, rid = UUID(owner), UUID(resource)
     async with ctx["session_factory"]() as db:
         run = await owned_run(db, uid, rid)
-        if run.status in {"completed", "failed"}:
-            return
-        cid = run.conversation_id
+    attempt = run.recoveries + (run.status not in {"completed", "failed"})
+    with run_trace(ctx.get("tracing"), run, attempt=attempt) as root:
+        await _execute(ctx, run, root)
+        if ctx.get("tracing"):
+            try:
+                await record_result(ctx, uid, rid, root)
+            except Exception as exc:
+                log.warning("chat_result_tracing_failed", error_type=type(exc).__name__)
+
+
+async def _execute(ctx: dict[str, Any], run: ChatRun, root: Observation) -> None:
+    if run.status in {"completed", "failed"}:
+        return
+    uid, rid, cid = run.user_id, run.id, run.conversation_id
     # Dedicated transaction: process death/cancellation releases serialization.
     # Full UUID hash avoids the user-prefix collision of per-user provider slots.
     async with ctx["engine"].connect() as connection:
@@ -147,12 +165,20 @@ async def execute(ctx: dict[str, Any], owner: str, resource: str) -> None:
                 raise HTTPException(409, "问答配置已改变，请提交新请求")
             graph = ctx["graphs"][run.mode]
             config = graph_config(ctx, run)
+            try:
+                # Cover old messages before budget trimming, even if the async task lags.
+                await consolidate(ctx["services"], run, config, pressure_only=True)
+            except Exception as exc:
+                log.warning("chat_memory_consolidation_deferred", error_type=type(exc).__name__)
             saved = await graph.aget_state(config)
             resume = bool(saved.values and saved.values.get("run_id") == str(run.id) and saved.next)
+            root.update(attempt=run.recoveries, resumed=resume)
             if resume:
                 # Business history always wins over an older checkpoint; do not
                 # append it. Nodes recheck sources immediately before every use.
-                memory = await load_memory(ctx["session_factory"], settings, uid, cid, run.scope)
+                memory = await load_memory(
+                    ctx["session_factory"], settings, uid, cid, run.scope, run.question
+                )
                 await graph.aupdate_state(config, memory)
             await graph.ainvoke(None if resume else initial_state(run), config, durability="sync")
         except NodeCancelledError:
@@ -160,6 +186,7 @@ async def execute(ctx: dict[str, Any], owner: str, resource: str) -> None:
             # worker process cancellation, rather than persisting a false failure.
             raise asyncio.CancelledError() from None
         except Exception as exc:
+            root.update(status="failed", error_type=type(exc).__name__)
             await fail(ctx, uid, rid, exc)
 
 
@@ -176,26 +203,6 @@ async def summarize(ctx: dict[str, Any], owner: str, resource: str) -> None:
         try:
             await assert_live(ctx["session_factory"], uid, rid)
             async with ctx["session_factory"]() as db:
-                conversation = await db.get(Conversation, run.conversation_id)
-                assert conversation and conversation.user_id == uid
-                base = conversation.summarized_seq
-                # Keep two complete turns verbatim; summarize a bounded prefix.
-                cutoff = conversation.next_seq - 1 - 4
-                rows = list(
-                    await db.scalars(
-                        select(Message)
-                        .where(
-                            Message.user_id == uid,
-                            Message.conversation_id == conversation.id,
-                            Message.seq > base,
-                            Message.seq <= cutoff,
-                        )
-                        .order_by(Message.seq)
-                        .limit(16)
-                    )
-                )
-                if len(rows) % 2:
-                    rows.pop()
                 task = await db.scalar(
                     select(TaskOutbox).where(
                         TaskOutbox.user_id == uid,
@@ -205,35 +212,11 @@ async def summarize(ctx: dict[str, Any], owner: str, resource: str) -> None:
                 )
                 if not task or task.completed_at:
                     return
-                if not rows or task.attempts >= 3:
-                    task.completed_at = utcnow()
-                    await db.commit()
-                    return
-                target = rows[-1].seq
-                previous_summary = conversation.summary
                 task.attempts += 1
                 await db.commit()
-            output = await ctx["services"].models.invoke(
-                run,
-                "summarize",
-                {
-                    "summary": previous_summary,
-                    "history": [{"role": m.role, "content": m.content} for m in rows],
-                },
-                graph_config(ctx, run),
-                schema=Summary,
-            )
+            with run_trace(ctx.get("tracing"), run, kind="summarize", attempt=task.attempts):
+                await consolidate(ctx["services"], run, graph_config(ctx, run, kind="summarize"))
             async with ctx["session_factory"]() as db:
-                await lock_user(db, uid)
-                conversation = await db.scalar(
-                    select(Conversation)
-                    .where(Conversation.id == run.conversation_id, Conversation.user_id == uid)
-                    .with_for_update()
-                )
-                assert conversation
-                if conversation.summarized_seq == base:
-                    conversation.summary = output.summary.encode()[:4000].decode(errors="ignore")
-                    conversation.summarized_seq = target
                 task = await db.scalar(
                     select(TaskOutbox).where(
                         TaskOutbox.user_id == uid,

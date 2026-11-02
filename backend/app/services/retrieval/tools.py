@@ -7,6 +7,7 @@ from uuid import UUID
 from langchain_core.documents import Document
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
+from app.core.observability import observation
 from app.services.chunking.crossrefs import labels
 from app.services.retrieval.types import RetrievalResult, RetrievalScope
 
@@ -179,6 +180,16 @@ class PaperTools:
         self.store, self.scope, self.retriever, self.max_bytes = store, scope, retriever, max_bytes
 
     async def execute(self, call: PaperCall) -> tuple[RetrievalResult, dict]:
+        with observation(f"paper_tool.{call.name}", tool=call.name) as span:
+            result, report = await self._execute(call)
+            span.update(
+                status=report["status"],
+                document_count=len(result.documents),
+                degraded=result.degraded,
+            )
+            return result, report
+
+    async def _execute(self, call: PaperCall) -> tuple[RetrievalResult, dict]:
         scope = self.scope
         if call.args.paper_id is not None:
             if scope.paper_ids is not None and call.args.paper_id not in scope.paper_ids:

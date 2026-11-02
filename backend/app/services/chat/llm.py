@@ -29,6 +29,7 @@ class ChatModels:
         # Compile and reuse clients; fast outputs also have a finite output budget.
         self.main = chat_model(settings, "main", max_tokens=settings.chat_max_output_tokens)
         self.fast = chat_model(settings, "fast", max_tokens=1024)
+        self.summarizer = chat_model(settings, "fast", max_tokens=4096)
 
     async def invoke(
         self,
@@ -42,6 +43,10 @@ class ChatModels:
     ) -> Any:
         main = node in {"generate", "direct_answer"}
         client: Any = self.main if main else self.fast
+        output_budget = self.settings.chat_max_output_tokens if main else 1024
+        if node == "summarize":
+            output_budget = 4096
+            client = self.summarizer
         tool_planning = node == "plan_paper_tools"
         if tool_planning:
             client = client.bind_tools(TOOL_DEFINITIONS, tool_choice="required")
@@ -123,7 +128,7 @@ class ChatModels:
                         node,
                         sum(len(str(m.content).encode()) + 16 for m in messages)
                         + (len(json.dumps(TOOL_DEFINITIONS).encode()) if tool_planning else 0)
-                        + (self.settings.chat_max_output_tokens if main else 1024),
+                        + output_budget,
                         call,
                         lambda: usage_value[0],
                         provider=self.settings.llm_base_url

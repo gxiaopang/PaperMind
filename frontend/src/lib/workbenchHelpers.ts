@@ -1,4 +1,18 @@
-import type { CitationItem, Location } from './api'
+import type { CitationItem, Location, MemoryEventItem, UsedMemoryHint } from './api'
+
+export const memoryKindLabels: Record<string, string> = {
+  goal: '研究目标',
+  constraint: '研究约束',
+  focus: '阅读焦点',
+  discussed: '已讨论事项',
+  open_question: '待解决问题',
+  correction: '用户纠正',
+  next_step: '下一步',
+  hypothesis: '研究假设',
+  conclusion: '研究判断',
+  preference: '个人偏好',
+  note: '笔记',
+}
 
 export type PdfHighlight = {
   paperId: string
@@ -114,6 +128,8 @@ export type RunProgressState = {
   citations: CitationItem[]
   usageTokens: number | null
   usageEstimated: boolean
+  usedMemories?: UsedMemoryHint[]
+  memoryEvents?: MemoryEventItem[]
   error: string | null
   seenEventIds: number[]
 }
@@ -213,6 +229,12 @@ export function applySseEvent(
     }
     case 'done': {
       const usageObj = payload.usage as { tokens?: number; estimated?: boolean } | undefined
+      const usedMemories = Array.isArray(payload.used_memories)
+        ? (payload.used_memories as UsedMemoryHint[])
+        : prev.usedMemories
+      const memoryEvents = Array.isArray(payload.memory_events)
+        ? (payload.memory_events as MemoryEventItem[])
+        : prev.memoryEvents
       return {
         ...prev,
         seenEventIds,
@@ -220,6 +242,8 @@ export function applySseEvent(
         finalStatus: typeof payload.status === 'string' ? payload.status : prev.finalStatus,
         usageTokens: typeof usageObj?.tokens === 'number' ? usageObj.tokens : prev.usageTokens,
         usageEstimated: Boolean(usageObj?.estimated),
+        usedMemories,
+        memoryEvents,
       }
     }
     case 'error': {

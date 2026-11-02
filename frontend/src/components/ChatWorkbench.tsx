@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import {
   Activity,
+  Brain,
   Bot,
   Check,
   CheckCircle2,
@@ -27,16 +28,21 @@ import {
   type CitationItem,
   type Collection,
   type Conversation,
+  type MemoryEventItem,
   type Paper,
   type ScopeConfig,
+  type ResearchProject,
+  type UsedMemoryHint,
   type UsageData,
   type User,
 } from '../lib/api'
+import { ResearchMemory } from './ResearchMemory'
 import { formatCompact, relativeTime } from '../lib/format'
 import { useUI } from '../lib/store'
 import {
   applySseEvent,
   locationsToHighlight,
+  memoryKindLabels,
   splitAnswerWithCitations,
   type PdfHighlight,
   type RunProgressState,
@@ -218,6 +224,119 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+function MessageMemoryTrace({
+  verifyResult,
+  userId,
+  conversationId,
+}: {
+  verifyResult: Record<string, unknown>
+  userId: string
+  conversationId: string | null
+}) {
+  const client = useQueryClient()
+  const [expanded, setExpanded] = useState(false)
+  const [undoneIds, setUndoneIds] = useState<string[]>([])
+  const [dismissedMemoryIds, setDismissedMemoryIds] = useState<string[]>([])
+
+  const usedMemories = (
+    Array.isArray(verifyResult?.used_memories)
+      ? (verifyResult.used_memories as UsedMemoryHint[])
+      : []
+  ).filter((m) => !dismissedMemoryIds.includes(m.id))
+
+  const memoryEvents = Array.isArray(verifyResult?.memory_events)
+    ? (verifyResult.memory_events as MemoryEventItem[])
+    : []
+
+  const undoMutation = useMutation({
+    mutationFn: (eventId: string) => api(`/memory/events/${eventId}/undo`, 'POST'),
+    onSuccess: (_, eventId) => {
+      setUndoneIds((prev) => [...prev, eventId])
+      void client.invalidateQueries({ queryKey: ['memories', userId] })
+      void client.invalidateQueries({ queryKey: ['memory-core', userId] })
+      if (conversationId) {
+        void client.invalidateQueries({ queryKey: ['messages', conversationId] })
+      }
+    },
+  })
+
+  const memoryModify = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: 'supersede' | 'delete' }) =>
+      action === 'delete'
+        ? api(`/memories/${id}`, 'DELETE')
+        : api(`/memories/${id}`, 'PATCH', { status: 'superseded' }),
+    onSuccess: (_, { id }) => {
+      setDismissedMemoryIds((prev) => [...prev, id])
+      void client.invalidateQueries({ queryKey: ['memories', userId] })
+    },
+  })
+
+  if (usedMemories.length === 0 && memoryEvents.length === 0) return null
+
+  return (
+    <div className="message-memory-trace" data-testid="message-memory-trace">
+      <div className="memory-trace-pills">
+        {usedMemories.length > 0 && (
+          <button
+            type="button"
+            className="memory-trace-btn"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            <Brain size={13} />
+            参考了 {usedMemories.length} 条研究记忆 {expanded ? '▴' : '▾'}
+          </button>
+        )}
+        {memoryEvents.map((ev) => {
+          const isUndone = Boolean(ev.undone_at) || undoneIds.includes(ev.id)
+          return (
+            <span key={ev.id} className="memory-event-pill" data-testid="memory-event-pill">
+              <Sparkles size={12} />
+              <span>{isUndone ? `已撤销：${ev.summary}` : ev.summary}</span>
+              {!isUndone && (
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={undoMutation.isPending}
+                  onClick={() => undoMutation.mutate(ev.id)}
+                >
+                  撤销
+                </button>
+              )}
+            </span>
+          )
+        })}
+      </div>
+      {expanded && usedMemories.length > 0 && (
+        <ul className="memory-trace-list" data-testid="used-memories-list">
+          {usedMemories.map((m) => (
+            <li key={m.id} className="memory-trace-item">
+              <span>
+                <strong>[{memoryKindLabels[m.kind] ?? m.kind}]</strong> {m.content}
+              </span>
+              <span className="memory-trace-actions">
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => memoryModify.mutate({ id: m.id, action: 'supersede' })}
+                >
+                  标为已修正
+                </button>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => memoryModify.mutate({ id: m.id, action: 'delete' })}
+                >
+                  删除
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function ChatWorkbench({
   user,
   initialPaperId,
@@ -232,6 +351,9 @@ export function ChatWorkbench({
   const [question, setQuestion] = useState('')
   const [mode, setMode] = useState<'fast' | 'agentic'>('agentic')
   const [scopeOpen, setScopeOpen] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [memoryOpen, setMemoryOpen] = useState(false)
+  const [memorySource, setMemorySource] = useState<ChatMessage | null>(null)
   const [selectedCollections, setSelectedCollections] = useState<string[]>([])
   const [selectedPapers, setSelectedPapers] = useState<string[]>([])
   const [activeRun, setActiveRun] = useState<RunProgressState | null>(null)
@@ -245,6 +367,8 @@ export function ChatWorkbench({
     queryKey: ['conversations', user.id],
     queryFn: () => api<Conversation[]>('/conversations'),
   })
+
+  const projects = useQuery({ queryKey: ['projects', user.id], queryFn: () => api<ResearchProject[]>('/projects') })
 
   const collections = useQuery({
     queryKey: ['collections', user.id],
@@ -265,6 +389,7 @@ export function ChatWorkbench({
     if (!selectedCid && conversations.data && conversations.data.length > 0 && !initialPaperId) {
       const first = conversations.data[0]
       setSelectedCid(first.id)
+      setSelectedProjectId(first.project_id ?? null)
       setSelectedCollections(first.scope?.collection_ids || [])
       setSelectedPapers(first.scope?.paper_ids || [])
     }
@@ -299,6 +424,7 @@ export function ChatWorkbench({
 
   function selectConversation(conv: Conversation) {
     setSelectedCid(conv.id)
+    setSelectedProjectId(conv.project_id ?? null)
     setSelectedCollections(conv.scope?.collection_ids || [])
     setSelectedPapers(conv.scope?.paper_ids || [])
     setErrorBanner('')
@@ -317,6 +443,7 @@ export function ChatWorkbench({
         setPdfCitation(null)
         setPdfHighlight(null)
         setSelectedCid(null)
+        setSelectedProjectId(null)
         setSelectedCollections([])
         setSelectedPapers([])
         if (remaining[0]) selectConversation(remaining[0])
@@ -339,10 +466,19 @@ export function ChatWorkbench({
     const created = await api<Conversation>('/conversations', 'POST', {
       title: '新会话',
       scope,
+      project_id: selectedProjectId,
     })
     await client.invalidateQueries({ queryKey: ['conversations', user.id] })
     setSelectedCid(created.id)
     return created
+  }
+
+  async function selectProject(id: string | null) {
+    if (selectedCid) await api(`/conversations/${selectedCid}`, 'PATCH', { project_id: id })
+    setSelectedProjectId(id)
+    await client.invalidateQueries({ queryKey: ['conversations', user.id] })
+    void client.invalidateQueries({ queryKey: ['conversation-memory', selectedCid] })
+    void client.invalidateQueries({ queryKey: ['memories', user.id] })
   }
 
   function handleSelectCitation(c: CitationItem) {
@@ -476,6 +612,7 @@ export function ChatWorkbench({
       className={`chat-workbench ${pdfCitation ? 'with-pdf-drawer' : ''}`}
       data-testid="chat-workbench"
     >
+      {memoryOpen && <ResearchMemory userId={user.id} conversationId={selectedCid} projectId={selectedProjectId} sourceMessage={memorySource} onClose={() => setMemoryOpen(false)} onProjectSelected={selectProject} />}
       <aside className="chat-conversations-sidebar">
         <div className="chat-sidebar-top">
           <h2>问答会话</h2>
@@ -489,6 +626,15 @@ export function ChatWorkbench({
           </Button>
         </div>
 
+        <div className="chat-project-selector">
+          <label htmlFor="chat-project">研究项目</label>
+          <select id="chat-project" value={selectedProjectId ?? ''} disabled={activeRun?.status === 'streaming'} onChange={e => { void selectProject(e.target.value || null).catch(e => setErrorBanner(e.message)) }}>
+            <option value="">独立会话</option>
+            {projects.data?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <small className="muted">切换项目会重置当前会话的研究上下文。</small>
+          <Button variant="outline" size="sm" onClick={() => { setMemorySource(null); setMemoryOpen(true) }}><Brain size={14} />研究记忆</Button>
+        </div>
         <div className="conversation-list">
           {conversations.data?.map((conv) => (
             <div
@@ -648,6 +794,11 @@ export function ChatWorkbench({
                     citations={msg.citations}
                     onSelectCitation={handleSelectCitation}
                   />
+                  <MessageMemoryTrace
+                    verifyResult={msg.verify_result}
+                    userId={user.id}
+                    conversationId={selectedCid}
+                  />
                   <div className="message-feedback-bar">
                     <button
                       type="button"
@@ -676,6 +827,7 @@ export function ChatWorkbench({
                       <ThumbsDown size={13} /> 需改进
                     </button>
                     <CopyButton text={msg.content} />
+                    <button type="button" className="feedback-btn" onClick={() => { setMemorySource(msg); setMemoryOpen(true) }}><Brain size={13} />保存为研究记忆</button>
                   </div>
                 </>
               )}

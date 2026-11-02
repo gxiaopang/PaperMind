@@ -417,11 +417,14 @@ async def update_user_settings(body: UserSettingsInput, identity: CurrentIdentit
             user_id=identity.user.id,
             answer_language=body.answer_language,
             detail_level=body.detail_level,
+            memory_write_mode=body.memory_write_mode,
         )
         db.add(pref)
     else:
         pref.answer_language = body.answer_language
         pref.detail_level = body.detail_level
+        if "memory_write_mode" in body.model_fields_set:
+            pref.memory_write_mode = body.memory_write_mode
         pref.updated_at = utcnow()
     await db.commit()
     return {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BarChart3, Monitor, Moon, Sliders, Sun } from 'lucide-react'
-import { api, type UsageData, type User, type UserSettings } from '../lib/api'
+import { api, type MemorySettings, type UsageData, type User, type UserSettings } from '../lib/api'
 import { formatBytes, formatNumber } from '../lib/format'
 import { useUI, type ThemePreference } from '../lib/store'
 import { Button } from './ui/button'
@@ -18,11 +18,17 @@ export function SettingsUsage({ user }: { user: User }) {
   const { theme, setTheme } = useUI()
   const [language, setLanguage] = useState<'zh' | 'en'>('zh')
   const [detailLevel, setDetailLevel] = useState<'concise' | 'standard' | 'detailed'>('standard')
+  const [memoryWriteMode, setMemoryWriteMode] = useState<'auto' | 'review'>('auto')
   const [savedNotice, setSavedNotice] = useState('')
 
   const settingsQuery = useQuery({
     queryKey: ['user-settings', user.id],
     queryFn: () => api<UserSettings>('/settings'),
+  })
+
+  const memorySettingsQuery = useQuery({
+    queryKey: ['memory-settings', user.id],
+    queryFn: () => api<MemorySettings>('/memory/settings'),
   })
 
   const usageQuery = useQuery({
@@ -37,17 +43,31 @@ export function SettingsUsage({ user }: { user: User }) {
     }
   }, [settingsQuery.data])
 
+  useEffect(() => {
+    if (memorySettingsQuery.data) {
+      setMemoryWriteMode(memorySettingsQuery.data.memory_write_mode)
+    }
+  }, [memorySettingsQuery.data])
+
   const saveMutation = useMutation({
-    mutationFn: () =>
-      api<UserSettings>('/settings', 'PUT', {
-        answer_language: language,
-        detail_level: detailLevel,
-      }),
+    mutationFn: async () => {
+      const [pref] = await Promise.all([
+        api<UserSettings>('/settings', 'PUT', {
+          answer_language: language,
+          detail_level: detailLevel,
+        }),
+        api<MemorySettings>('/memory/settings', 'PUT', {
+          memory_write_mode: memoryWriteMode,
+        }),
+      ])
+      return pref
+    },
     onSuccess: (data) => {
       setLanguage(data.answer_language)
       setDetailLevel(data.detail_level)
       setSavedNotice('个人回答设置已保存')
       void client.invalidateQueries({ queryKey: ['user-settings', user.id] })
+      void client.invalidateQueries({ queryKey: ['memory-settings', user.id] })
     },
   })
 
@@ -102,6 +122,19 @@ export function SettingsUsage({ user }: { user: User }) {
                 <option value="concise">简明扼要（聚焦核心结论与公式）</option>
                 <option value="standard">标准适中（平衡可读性与细节）</option>
                 <option value="detailed">详尽深入（展开推导与实验对比）</option>
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pref-memory-mode">研究记忆写入策略（Hermes 模式）</label>
+              <select
+                id="pref-memory-mode"
+                className="form-select"
+                value={memoryWriteMode}
+                onChange={(e) => setMemoryWriteMode(e.target.value as 'auto' | 'review')}
+              >
+                <option value="auto">自动记住研究目标与偏好（回答下方可一键撤销）</option>
+                <option value="review">仅生成待确认候选（手动审核后生效）</option>
               </select>
             </div>
 

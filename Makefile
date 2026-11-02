@@ -1,6 +1,6 @@
 COMPOSE = docker compose --env-file .env --env-file .env.local -f deploy/docker-compose.yml
 
-.PHONY: bootstrap infra up down logs migrate api worker web check test test-parsing test-ingestion test-retrieval eval-retrieval test-chat smoke-chat e2e smoke
+.PHONY: bootstrap infra up down logs migrate api worker web check test test-parsing test-ingestion test-retrieval eval-retrieval test-chat test-memory eval-memory smoke-chat e2e smoke
 bootstrap:
 	python3 scripts/bootstrap.py
 	cd backend && uv sync --frozen
@@ -35,6 +35,10 @@ test-retrieval:
 	cd backend && uv run pytest tests/test_retrieval.py
 test-chat:
 	cd backend && uv run pytest tests/test_chat.py
+test-memory:
+	cd backend && uv run pytest tests/test_memory.py tests/test_graph_context.py
+eval-memory:
+	cd backend && uv run python ../scripts/memory_eval.py
 smoke-chat:
 	cd backend && uv run python ../scripts/pre_m6_live.py --confirm-paid --output ../reports/m3-local/chat-$$(date +%Y%m%d-%H%M%S).json
 eval-retrieval:

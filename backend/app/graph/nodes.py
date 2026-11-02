@@ -1,7 +1,7 @@
 import re
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from langchain_core.documents import Document
@@ -16,7 +16,8 @@ from app.graph.validation import SAFE_ANSWER, citation_issues, validate_citation
 from app.services.chat.events import append, emit, mirror
 from app.services.chat.store import assert_live, finish_task, owned_run, scope_for
 from app.services.ingestion.quota import lock_user
-from app.services.memory.history import load_memory
+from app.services.memory.history import history_tokens, load_memory
+from app.services.memory.tools import curate_user_turn
 from app.services.retrieval import create_retriever
 from app.services.retrieval.store import RetrievalStore
 from app.services.retrieval.tools import (
@@ -55,6 +56,19 @@ class GraphServices:
 
     async def fresh(self, state: RAGState) -> list[dict]:
         run = await self.run(state)
+        state.update(
+            cast(
+                RAGState,
+                await load_memory(
+                    self.sessions,
+                    self.settings,
+                    run.user_id,
+                    run.conversation_id,
+                    run.scope,
+                    run.question,
+                ),
+            )
+        )
         state["paper_maps"] = await RetrievalStore(self.sessions, self.settings).paper_maps(
             scope_for(run.user_id, run.scope)
         )
@@ -75,7 +89,7 @@ class GraphServices:
     async def load_memory(self, state: RAGState, config: RunnableConfig) -> dict:
         run = await self.step(state, "load_memory")
         memory = await load_memory(
-            self.sessions, self.settings, run.user_id, run.conversation_id, run.scope
+            self.sessions, self.settings, run.user_id, run.conversation_id, run.scope, run.question
         )
         memory["paper_maps"] = await RetrievalStore(self.sessions, self.settings).paper_maps(
             scope_for(run.user_id, run.scope)
@@ -430,6 +444,17 @@ class GraphServices:
                 role="user",
                 content=run.question,
             )
+            used_memories = [
+                {
+                    "id": str(m["id"]),
+                    "kind": m.get("kind", "note"),
+                    "level": m.get("level", "project"),
+                    "content": str(m.get("content", ""))[:160],
+                    "status": m.get("status", "active"),
+                }
+                for m in state.get("memories", [])
+                if not str(m.get("id", "")).startswith("project:")
+            ]
             message = Message(
                 id=uuid4(),
                 user_id=run.user_id,
@@ -440,10 +465,22 @@ class GraphServices:
                 content=answer,
                 rewritten_query=state.get("rewritten_query"),
                 route=state["route"],
-                verify_result=verification,
+                verify_result={
+                    **verification,
+                    "degraded": sorted(set(state.get("degraded", []))),
+                    **({"used_memories": used_memories} if used_memories else {}),
+                },
             )
             db.add_all([user_message, message])
             await db.flush()
+            memory_events: list[dict] = []
+            if state["route"] == "paper_qa":
+                memory_events = await curate_user_turn(db, conversation, user_message, run.id)
+                if memory_events:
+                    message.verify_result = {
+                        **message.verify_result,
+                        "memory_events": memory_events,
+                    }
             for n in numbers:
                 chunk = available[state["documents"][n - 1]["metadata"]["chunk_id"]]
                 db.add(
@@ -460,17 +497,34 @@ class GraphServices:
                 )
             conversation.next_seq += 2
             conversation.scope = run.scope
-            conversation.active_paper_ids = list(
+            cited_paper_ids = list(
                 dict.fromkeys(
                     str(available[state["documents"][n - 1]["metadata"]["chunk_id"]].paper_id)
                     for n in numbers
                 )
             )
+            if cited_paper_ids:
+                conversation.active_paper_ids = cited_paper_ids
+            pending_history = list(
+                await db.scalars(
+                    select(Message)
+                    .where(
+                        Message.user_id == run.user_id,
+                        Message.conversation_id == run.conversation_id,
+                        Message.seq > conversation.summarized_seq,
+                    )
+                    .order_by(Message.seq)
+                )
+            )
+            memory_pressure = (
+                history_tokens([{"content": m.content} for m in pending_history])
+                > self.settings.memory_recent_token_budget
+            )
             if conversation.title == "新会话":
                 conversation.title = run.question[:120]
             if (
                 message.seq - conversation.summarized_seq
-            ) // 2 >= self.settings.memory_summarize_after_turns:
+            ) // 2 >= self.settings.memory_summarize_after_turns or memory_pressure:
                 # Every threshold-triggering run has its own idempotent summary task.
                 db.add(TaskOutbox(user_id=run.user_id, kind="summarize", resource_id=run.id))
             run.status, run.result_status, run.finished_at = "completed", status, utcnow()
@@ -491,7 +545,13 @@ class GraphServices:
                     db,
                     run,
                     "done",
-                    {"message_id": str(message.id), "status": status, "usage": usage},
+                    {
+                        "message_id": str(message.id),
+                        "status": status,
+                        "usage": usage,
+                        **({"used_memories": used_memories} if used_memories else {}),
+                        **({"memory_events": memory_events} if memory_events else {}),
+                    },
                     state.get("attempt", 0),
                 ),
             ]

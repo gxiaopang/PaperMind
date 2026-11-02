@@ -9,6 +9,11 @@ class RAGState(TypedDict, total=False):
     scope: dict
     mode: str
     history: list[dict]
+    core_memory: dict
+    session_recall: list[dict]
+    research_state: dict
+    memories: list[dict]
+    memory_coverage: dict
     summary: str
     active_paper_ids: list[str]
     route: str
@@ -44,7 +49,12 @@ def initial_state(run: object) -> RAGState:
         mode=run.mode,
         preferences=run.preferences or {"answer_language": "zh", "detail_level": "standard"},
         history=[],
+        core_memory={},
+        session_recall=[],
         summary="",
+        research_state={},
+        memories=[],
+        memory_coverage={},
         active_paper_ids=[],
         route="paper_qa",
         rewritten_query=run.question,

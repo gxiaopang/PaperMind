@@ -118,6 +118,7 @@ class Settings(BaseSettings):
     rag_max_retrieval_retries: int = Field(default=2, ge=0, le=2)
     rag_max_generation_retries: int = Field(default=1, ge=0, le=1)
     memory_recent_token_budget: int = Field(default=2000, ge=128, le=8000)
+    memory_long_term_token_budget: int = Field(default=1600, ge=128, le=8000)
     memory_summarize_after_turns: int = Field(default=8, ge=2, le=100)
     chat_max_output_tokens: int = Field(default=2048, ge=128, le=4096)
     chat_initial_token_reserve: int = Field(default=2048, ge=128, le=16000)

@@ -14,12 +14,14 @@ class ConversationInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(default="新会话", min_length=1, max_length=120)
     scope: ScopeInput = Field(default_factory=ScopeInput)
+    project_id: UUID | None = None
 
 
 class ConversationUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str | None = Field(default=None, min_length=1, max_length=120)
     scope: ScopeInput | None = None
+    project_id: UUID | None = None
 
 
 class RunInput(BaseModel):

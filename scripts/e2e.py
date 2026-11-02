@@ -118,7 +118,7 @@ class FakeChatModels:
         if node == "verify_grounding":
             return schema.model_validate({"grounded": True})
         if node == "summarize":
-            return schema.model_validate({"summary": "研究缩放点积注意力与实验指标对比。"})
+            return schema.model_validate({"summary": "研究缩放点积注意力与实验指标对比。", "research_state": {}})
         if node == "direct_answer":
             return "你好，我是 PaperMind 论文助手。"
         # generate node

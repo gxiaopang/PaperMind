@@ -1244,7 +1244,7 @@ requires-dist = [
     { name = "httpx", extras = ["socks"], specifier = ">=0.28,<1" },
     { name = "langchain-core", specifier = ">=1,<2" },
     { name = "langchain-openai", specifier = ">=1,<2" },
-    { name = "langfuse", specifier = ">=3,<6" },
+    { name = "langfuse", specifier = ">=5.0.4,<6" },
     { name = "langgraph", specifier = ">=1,<2" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3,<4" },
     { name = "pgvector", specifier = ">=0.3,<1" },
